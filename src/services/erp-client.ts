@@ -27,7 +27,12 @@ export async function getSkuMappings(): Promise<SkuMapping[]> {
     const data = (await response.json()) as { mappings: SkuMapping[] };
     allMappings.push(...data.mappings);
 
-    hasMore = data.mappings.length > 50;
+    /*
+      Bug: hasMore will always be false, since we are only fetching maximum of 50
+      Issue: Since hasMore will be always false, the while loop will always exit with after first fetch. So an incomplete fetch means, we will only have partial data
+      How I found it: AI flagged it and clear test failure 'fetches every page of SKU mappings, including a full final-page boundary'
+    */
+    hasMore = data.mappings.length === 50;
 
     page++;
   }
