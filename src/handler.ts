@@ -64,6 +64,14 @@ async function processRecord(record: SQSRecord): Promise<void> {
   try {
     skuMappings = await getSkuMappings();
   } catch (err) {
+    /*
+      Bug: catch is not handled for failed SKU Mappings. Thus fetch failures are masked and code execution proceeds
+      Issue: This will cause issues down the line when we try to find the relevant mapping and fire another issue making it harder to find the real issue
+      How I found it: AI flagged it and I saw the test failure 'surfaces ERP mapping-fetch failures instead of masking them'    
+      */
+    console.error(`Failed to fetch SKU Mappings:`, err);
+    await updateOrderPhase(order.orderId, "A0", `SKU Mapping fetch failed: ${(err as Error).message}`);
+    return;
   }
 
   // Step 5: Build and create sales order in ERP
