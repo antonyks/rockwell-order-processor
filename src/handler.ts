@@ -106,7 +106,13 @@ async function processRecord(record: SQSRecord): Promise<void> {
     const erpSalesOrderId = await createSalesOrder(erpOrder);
     console.log(`Created ERP sales order: ${erpSalesOrderId} for order ${order.orderId}`);
 
-    updateOrderPhase(order.orderId, "A1");
+    /*
+      Bug: updateOrderPhase(order.orderId, "A1"); was called without await
+      Issue: This would mean, before full execution of updateOrderPhase happens, the code will continue with the next record.
+             That can cause duplicate processing (step 3 check might fail).
+      How I found: AI flagged it in the review. I also saw the idempotency test failure.
+    */
+    await updateOrderPhase(order.orderId, "A1");
   } catch (err) {
     console.error(`Failed to create ERP sales order for ${order.orderId}:`, err);
     await updateOrderPhase(order.orderId, "A0", `ERP creation failed: ${(err as Error).message}`);
